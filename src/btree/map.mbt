@@ -1,5 +1,5 @@
 ///|
-const B : Int = 4
+const B : Int = 6
 
 ///|
 pub fn[K, V] new() -> T[K, V] {
@@ -76,24 +76,22 @@ pub fn[K, V] T::clear(self : Self[K, V]) -> Unit {
 }
 
 ///|
-fn[K, V] split_child(parent : Node[K, V], i : Int) -> Unit {
-  let full_child = parent.children[i]
-  let new_sibling = Node::new()
-  let median_key_val = full_child.keys[B - 1]
-  parent.keys.insert(i, median_key_val)
-  let (left_keys, right_keys) = full_child.keys.split_at(B)
-  new_sibling.keys.append(right_keys)
-  let final_left_keys = Array::new()
-  for i = 0; i < B - 1; i = i + 1 {
-    final_left_keys.push(left_keys[i])
+fn[K, V] split_child(parent : Node[K, V], idx : Int) -> Unit {
+  let child = parent.children[idx]
+  let median_idx = B - 1
+  let (left_keys, right_with_median) = child.keys.split_at(median_idx)
+  let median = right_with_median[0]
+  let (_, right_keys) = right_with_median.split_at(1)
+  let sibling = Node::new()
+  sibling.keys = right_keys
+  child.keys = left_keys
+  if child.is_leaf() == false {
+    let (left_children, right_children) = child.children.split_at(B)
+    sibling.children.append(right_children)
+    child.children = left_children
   }
-  full_child.keys = final_left_keys
-  if full_child.is_leaf() == false {
-    let (left_children, right_children) = full_child.children.split_at(B)
-    new_sibling.children.append(right_children)
-    full_child.children = left_children
-  }
-  parent.children.insert(i + 1, new_sibling)
+  parent.keys.insert(idx, median)
+  parent.children.insert(idx + 1, sibling)
 }
 
 ///|

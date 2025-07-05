@@ -43,13 +43,19 @@ test "btree_sorted_map bench" (b : @bench.T) {
   }
   b.bench(
     fn() {
-      ignore(@sorted_map.from_array(data))
+      let tree = @sorted_map.from_array(data)
+      for p in data {
+        ignore(tree.get(p.0))
+      }
     },
     count=10,
   )
   b.bench(
     fn() {
-      ignore(from_array(data))
+      let tree = from_array(data)
+      for p in data {
+        ignore(tree.get(p.0))
+      }
     },
     count=10,
   )
