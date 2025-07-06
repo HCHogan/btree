@@ -34,7 +34,7 @@ test "btree" {
 }
 
 ///|
-test "btree_sorted_map bench" (b : @bench.T) {
+test "btree add" (b : @bench.T) {
   let data : Array[(Int, String)] = Array::default()
   let r = @random.Rand::new()
   for _j in 0..<10000 {
@@ -67,16 +67,73 @@ test "btree_sorted_map bench" (b : @bench.T) {
   )
 }
 
+///|
+test "btree get" (b : @bench.T) {
+  let data : Array[(Int, String)] = Array::default()
+  let r = @random.Rand::new()
+  for _j in 0..<10000 {
+    let i = r.int()
+    data.push((i, i.to_string()))
+  }
+  let avltree = @sorted_map.from_array(data)
+  let btree = from_array(data)
+  b.bench(
+    fn() {
+      for p in data {
+        ignore(avltree.get(p.0))
+      }
+    },
+    count=10,
+  )
+  b.bench(
+    fn() {
+      for p in data {
+        ignore(btree.get(p.0))
+      }
+    },
+    count=10,
+  )
+}
+
+///|
+test "btree remove" (b : @bench.T) {
+  let data : Array[(Int, String)] = Array::default()
+  let r = @random.Rand::new()
+  for _j in 0..<10000 {
+    let i = r.int()
+    data.push((i, i.to_string()))
+  }
+  let avltree = @sorted_map.from_array(data)
+  let btree = from_array(data)
+  b.bench(
+    fn() {
+      for p in data {
+        avltree.remove(p.0)
+      }
+    },
+    count=1,
+  )
+  b.bench(
+    fn() {
+      for p in data {
+        btree.remove(p.0)
+      }
+    },
+    count=1,
+  )
+}
+
+///|
 test {
   let bt = T::new()
-  for i = 1; i <= 100; i = i + 1 { bt.add(i, i) }
-
+  for i = 1; i <= 100; i = i + 1 {
+    bt.add(i, i)
+  }
   bt.remove(50)
   assert_eq(bt.contains(50), false)
   assert_eq(bt.size(), 99)
-
   for i = 0; i < 30; i = i + 1 {
-    let k = (i * 7) % 100 + 1
+    let k = i * 7 % 100 + 1
     bt.remove(k)
     assert_eq(bt.contains(k), false)
   }

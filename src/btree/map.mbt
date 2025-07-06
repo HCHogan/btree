@@ -1,5 +1,5 @@
 ///|
-const B : Int = 6
+const B : Int = 16
 
 ///|
 pub fn[K, V] new() -> T[K, V] {
