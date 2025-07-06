@@ -47,6 +47,9 @@ test "btree_sorted_map bench" (b : @bench.T) {
       for p in data {
         ignore(tree.get(p.0))
       }
+      for p in data {
+        tree.remove(p.0)
+      }
     },
     count=10,
   )
@@ -56,7 +59,25 @@ test "btree_sorted_map bench" (b : @bench.T) {
       for p in data {
         ignore(tree.get(p.0))
       }
+      for p in data {
+        tree.remove(p.0)
+      }
     },
     count=10,
   )
+}
+
+test {
+  let bt = T::new()
+  for i = 1; i <= 100; i = i + 1 { bt.add(i, i) }
+
+  bt.remove(50)
+  assert_eq(bt.contains(50), false)
+  assert_eq(bt.size(), 99)
+
+  for i = 0; i < 30; i = i + 1 {
+    let k = (i * 7) % 100 + 1
+    bt.remove(k)
+    assert_eq(bt.contains(k), false)
+  }
 }

@@ -204,3 +204,135 @@ pub fn[K : Compare + Show, V] T::to_string_pretty(self : Self[K, V]) -> String {
     }
   }
 }
+
+///|
+fn[K : Compare, V] borrow_from_prev(parent : Node[K, V], idx : Int) -> Unit {
+  let child = parent.children[idx]
+  let sibling = parent.children[idx - 1]
+  child.keys.insert(0, parent.keys[idx - 1])
+  if sibling.is_leaf() == false {
+    let last_child = sibling.children.remove(sibling.children.length() - 1)
+    child.children.insert(0, last_child)
+  }
+  parent.keys[idx - 1] = sibling.keys.remove(sibling.keys.length() - 1)
+}
+
+///|
+fn[K : Compare, V] borrow_from_next(parent : Node[K, V], idx : Int) -> Unit {
+  let child = parent.children[idx]
+  let sibling = parent.children[idx + 1]
+  child.keys.push(parent.keys[idx])
+  if sibling.is_leaf() == false {
+    let first_child = sibling.children.remove(0)
+    child.children.push(first_child)
+  }
+  parent.keys[idx] = sibling.keys.remove(0)
+}
+
+///|
+fn[K : Compare, V] merge_children(parent : Node[K, V], idx : Int) -> Unit {
+  let child = parent.children[idx]
+  let sibling = parent.children[idx + 1]
+  child.keys.push(parent.keys[idx])
+  child.keys.append(sibling.keys)
+  if sibling.is_leaf() == false {
+    child.children.append(sibling.children)
+  }
+  ignore(parent.keys.remove(idx))
+  ignore(parent.children.remove(idx + 1))
+}
+
+///|
+fn[K : Compare, V] fill_child(parent : Node[K, V], idx : Int) -> Unit {
+  if idx > 0 && parent.children[idx - 1].keys.length() >= B {
+    borrow_from_prev(parent, idx)
+  } else if idx < parent.children.length() - 1 &&
+    parent.children[idx + 1].keys.length() >= B {
+    borrow_from_next(parent, idx)
+  } else {
+    let merge_idx = if idx < parent.children.length() - 1 {
+      idx
+    } else {
+      idx - 1
+    }
+    merge_children(parent, merge_idx)
+  }
+}
+
+///|
+fn[K : Compare, V] predecessor(node : Node[K, V]) -> (K, V) {
+  let mut cur = node
+  while cur.is_leaf() == false {
+    cur = cur.children[cur.children.length() - 1]
+  }
+  cur.keys[cur.keys.length() - 1]
+}
+
+///|
+fn[K : Compare, V] successor(node : Node[K, V]) -> (K, V) {
+  let mut cur = node
+  while cur.is_leaf() == false {
+    cur = cur.children[0]
+  }
+  cur.keys[0]
+}
+
+///|
+fn[K : Compare, V] remove_key(node : Node[K, V], key : K) -> Bool {
+  match
+    node.keys.binary_search_by(fn(p) {
+      if p.0 < key {
+        -1
+      } else if p.0 > key {
+        1
+      } else {
+        0
+      }
+    }) {
+    Ok(idx) => {
+      if node.is_leaf() {
+        ignore(node.keys.remove(idx))
+        return true
+      }
+      if node.children[idx].keys.length() >= B {
+        let (pk, pv) = predecessor(node.children[idx])
+        node.keys[idx] = (pk, pv)
+        ignore(remove_key(node.children[idx], pk))
+      } else if node.children[idx + 1].keys.length() >= B {
+        let (sk, sv) = successor(node.children[idx + 1])
+        node.keys[idx] = (sk, sv)
+        ignore(remove_key(node.children[idx + 1], sk))
+      } else {
+        merge_children(node, idx)
+        ignore(remove_key(node.children[idx], key))
+      }
+      true
+    }
+    Err(idx) => {
+      if node.is_leaf() {
+        return false
+      }
+      fill_child(node, idx)
+      let new_idx = if idx >= node.children.length() { idx - 1 } else { idx }
+      remove_key(node.children[new_idx], key)
+    }
+  }
+}
+
+///|
+pub fn[K : Compare, V] T::remove(self : Self[K, V], key : K) -> Unit {
+  match self.root {
+    None => return ()
+    Some(root) =>
+      if remove_key(root, key) {
+        self.size = self.size - 1
+        if root.keys.is_empty() {
+          if root.is_leaf() {
+            self.root = None
+          } else {
+            self.root = Some(root.children[0])
+          }
+        }
+      }
+  }
+}
