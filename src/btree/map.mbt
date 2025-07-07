@@ -37,16 +37,7 @@ fn[K, V] Node::is_leaf(self : Node[K, V]) -> Bool {
 
 ///|
 fn[K : Compare, V] search(node : Node[K, V], k : K) -> V? {
-  match
-    node.keys.binary_search_by(fn(pair) {
-      if pair.0 < k {
-        return -1
-      } else if pair.0 > k {
-        return 1
-      } else {
-        return 0
-      }
-    }) {
+  match node.keys.binary_search_by(fn(pair) { pair.0.compare(k) }) {
     Ok(i) => Some(node.keys[i].1)
     Err(i) => if node.is_leaf() { None } else { search(node.children[i], k) }
   }
@@ -100,16 +91,7 @@ fn[K : Compare, V] insert_non_full(
   key : K,
   value : V
 ) -> Bool {
-  match
-    node.keys.binary_search_by(fn(pair) {
-      if pair.0 < key {
-        return -1
-      } else if pair.0 > key {
-        return 1
-      } else {
-        return 0
-      }
-    }) {
+  match node.keys.binary_search_by(fn(pair) { pair.0.compare(key) }) {
     Ok(i) => {
       node.keys[i] = (key, value)
       false
@@ -279,16 +261,7 @@ fn[K : Compare, V] successor(node : Node[K, V]) -> (K, V) {
 
 ///|
 fn[K : Compare, V] remove_key(node : Node[K, V], key : K) -> Bool {
-  match
-    node.keys.binary_search_by(fn(p) {
-      if p.0 < key {
-        -1
-      } else if p.0 > key {
-        1
-      } else {
-        0
-      }
-    }) {
+  match node.keys.binary_search_by(fn(p) { p.0.compare(key) }) {
     Ok(idx) => {
       if node.is_leaf() {
         ignore(node.keys.remove(idx))
