@@ -81,7 +81,7 @@ fn[K, V] split_child(parent : Node[K, V], idx : Int) -> Unit {
 fn[K : Compare, V] insert_non_full(
   node : Node[K, V],
   key : K,
-  value : V
+  value : V,
 ) -> Bool {
   match node.keys.binary_search_by(fn(pair) { pair.0.compare(key) }) {
     Ok(i) => {
@@ -134,7 +134,7 @@ pub fn[K : Compare, V] T::add(self : Self[K, V], key : K, value : V) -> Unit {
 fn[K : Compare + Show, V] to_string_pretty_recursive(
   node : Node[K, V],
   prefix : String,
-  is_tail : Bool
+  is_tail : Bool,
 ) -> String {
   let mut result = prefix
   if is_tail {
@@ -293,4 +293,200 @@ pub fn[K : Compare, V] T::remove(self : Self[K, V], key : K) -> Unit {
         }
       }
   }
+}
+
+///|
+pub fn[K : Compare, V] op_set(self : T[K, V], key : K, value : V) -> Unit {
+  self.add(key, value)
+}
+
+///|
+pub impl[K : Eq, V : Eq] Eq for T[K, V] with op_equal(self, other) {
+  self.to_array() == other.to_array()
+}
+
+///|
+pub fn[K, V] is_empty(self : T[K, V]) -> Bool {
+  self.size == 0
+}
+
+///|
+pub fn[K, V] each(self : T[K, V], f : (K, V) -> Unit raise?) -> Unit raise? {
+  fn dfs(n : Node[K, V]?, f : (K, V) -> Unit raise?) -> Unit raise? {
+    match n {
+      None => ()
+      Some(n) => {
+        let len = n.keys.length()
+        for i = 0; i < len; i = i + 1 {
+          if !n.is_leaf() {
+            dfs(Some(n.children[i]), f)
+          }
+          f(n.keys[i].0, n.keys[i].1)
+        }
+        if !n.is_leaf() {
+          dfs(Some(n.children[len]), f)
+        }
+      }
+    }
+  }
+
+  dfs(self.root, f)
+}
+
+///|
+pub fn[K, V] eachi(
+  self : T[K, V],
+  f : (Int, K, V) -> Unit raise?,
+) -> Unit raise? {
+  let mut idx = 0
+  self.each((k, v) => {
+    f(idx, k, v)
+    idx = idx + 1
+  })
+}
+
+///|
+pub fn[K, V] keys(self : T[K, V]) -> Array[K] {
+  let ks = Array::new(capacity=self.size)
+  self.each((k, _v) => ks.push(k))
+  ks
+}
+
+///|
+pub fn[K, V] values(self : T[K, V]) -> Array[V] {
+  let vs = Array::new(capacity=self.size)
+  self.each((_k, v) => vs.push(v))
+  vs
+}
+
+///|
+pub fn[K, V] to_array(self : T[K, V]) -> Array[(K, V)] {
+  let arr = Array::new(capacity=self.size)
+  self.each((k, v) => arr.push((k, v)))
+  arr
+}
+
+///|
+pub fn[K, V] iter(self : T[K, V]) -> Iter[(K, V)] {
+  Iter::new(yield_ => {
+    fn go(n : Node[K, V]?, y : ((K, V)) -> IterResult) -> IterResult {
+      match n {
+        None => IterContinue
+        Some(n) => {
+          let len = n.keys.length()
+          for i = 0; i < len; i = i + 1 {
+            if !n.is_leaf() && go(Some(n.children[i]), y) is IterEnd {
+              return IterEnd
+            }
+            if y((n.keys[i].0, n.keys[i].1)) is IterEnd {
+              return IterEnd
+            }
+          }
+          if !n.is_leaf() {
+            go(Some(n.children[len]), y)
+          } else {
+            IterContinue
+          }
+        }
+      }
+    }
+
+    go(self.root, yield_)
+  })
+}
+
+///|
+pub fn[K, V] iter2(self : T[K, V]) -> Iter2[K, V] {
+  Iter2::new(yield_ => {
+    fn go(n : Node[K, V]?, y : (K, V) -> IterResult) -> IterResult {
+      match n {
+        None => IterContinue
+        Some(n) => {
+          let len = n.keys.length()
+          for i = 0; i < len; i = i + 1 {
+            if !n.is_leaf() && go(Some(n.children[i]), y) is IterEnd {
+              return IterEnd
+            }
+            if y(n.keys[i].0, n.keys[i].1) is IterEnd {
+              return IterEnd
+            }
+          }
+          if !n.is_leaf() {
+            go(Some(n.children[len]), y)
+          } else {
+            IterContinue
+          }
+        }
+      }
+    }
+
+    go(self.root, yield_)
+  })
+}
+
+///|
+pub fn[K : Compare, V] from_iter(iter : Iter[(K, V)]) -> T[K, V] {
+  let m = new()
+  iter.each(p => m.add(p.0, p.1))
+  m
+}
+
+///|
+pub fn[K : Compare, V] range(self : T[K, V], low : K, high : K) -> Iter2[K, V] {
+  Iter2::new(yield_ => {
+    fn go(
+      n : Node[K, V]?,
+      low : K,
+      high : K,
+      y : (K, V) -> IterResult,
+    ) -> IterResult {
+      match n {
+        None => IterContinue
+        Some(n) => {
+          let len = n.keys.length()
+          for i = 0; i < len; i = i + 1 {
+            if !n.is_leaf() &&
+              n.keys[i].0 >= low &&
+              go(Some(n.children[i]), low, high, y) is IterEnd {
+              return IterEnd
+            }
+            let k = n.keys[i].0
+            if k >= low && k <= high {
+              if y(k, n.keys[i].1) is IterEnd {
+                return IterEnd
+              }
+            }
+            if k > high {
+              return IterContinue
+            }
+          }
+          if !n.is_leaf() && n.keys[len - 1].0 <= high {
+            go(Some(n.children[len]), low, high, y)
+          } else {
+            IterContinue
+          }
+        }
+      }
+    }
+
+    go(self.root, low, high, yield_)
+  })
+}
+
+///|
+pub impl[K : @quickcheck.Arbitrary + Compare, V : @quickcheck.Arbitrary] @quickcheck.Arbitrary for T[
+  K,
+  V,
+] with arbitrary(size, rs) {
+  @quickcheck.Arbitrary::arbitrary(size, rs) |> from_iter
+}
+
+///|
+pub impl[K : Show, V : Show] Show for T[K, V] with output(self, logger) {
+  logger.write_string("of(\{self.to_array().to_string()})")
+}
+
+///|
+pub impl[K, V] Default for T[K, V] with default() {
+  new()
 }
