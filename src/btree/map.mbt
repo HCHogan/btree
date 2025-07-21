@@ -2,13 +2,11 @@
 const B : Int = 16
 
 ///|
-pub fn[K, V] new() -> T[K, V] {
-  { root: None, size: 0 }
-}
+pub fnalias T::new
 
 ///|
 pub fn[K, V] T::new() -> T[K, V] {
-  new()
+  { root: None, size: 0 }
 }
 
 ///|
@@ -53,7 +51,7 @@ pub fn[K : Compare, V] T::get(self : Self[K, V], k : K) -> V? {
 
 ///|
 pub fn[K : Compare, V] T::contains(self : Self[K, V], k : K) -> Bool {
-  !self.get(k).is_empty()
+  self.get(k) is Some(_)
 }
 
 ///|
@@ -111,18 +109,17 @@ fn[K : Compare, V] insert_non_full(
 ///|
 pub fn[K : Compare, V] T::add(self : Self[K, V], key : K, value : V) -> Unit {
   match self.root {
-    Some(root_node) =>
-      if root_node.keys.length() == 2 * B - 1 {
-        let old_root = self.root.unwrap()
+    Some(old_root) =>
+      if old_root.keys.length() == 2 * B - 1 {
         let new_root = Node::new()
         new_root.children.push(old_root)
         self.root = Some(new_root)
         split_child(new_root, 0)
         if insert_non_full(new_root, key, value) {
-          self.size = self.size + 1
+          self.size += 1
         }
-      } else if insert_non_full(root_node, key, value) {
-        self.size = self.size + 1
+      } else if insert_non_full(old_root, key, value) {
+        self.size += 1
       }
     None => {
       let root = Node::new()
@@ -150,7 +147,7 @@ fn[K : Compare + Show, V] to_string_pretty_recursive(
   if node.is_leaf() == false {
     let num_children = node.children.length()
     let new_prefix = prefix + (if is_tail { "    " } else { "│   " })
-    for i = 0; i < num_children; i = i + 1 {
+    for i in 0..<num_children {
       let child = node.children[i]
       let child_is_tail = i == num_children - 1
       result = result +
@@ -170,7 +167,7 @@ pub fn[K : Compare + Show, V] T::to_string_pretty(self : Self[K, V]) -> String {
       result = result + "[\{root_keys_str}]\n"
       if root_node.is_leaf() == false {
         let num_children = root_node.children.length()
-        for i = 0; i < num_children; i = i + 1 {
+        for i in 0..<num_children {
           let child = root_node.children[i]
           let is_tail = i == num_children - 1
           result = result + to_string_pretty_recursive(child, "", is_tail)
@@ -208,14 +205,12 @@ fn[K, V] borrow_from_next(parent : Node[K, V], idx : Int) -> Unit {
 ///|
 fn[K, V] merge_children(parent : Node[K, V], idx : Int) -> Unit {
   let child = parent.children[idx]
-  let sibling = parent.children[idx + 1]
-  child.keys.push(parent.keys[idx])
+  let sibling = parent.children.remove(idx + 1)
+  child.keys.push(parent.keys.remove(idx))
   child.keys.append(sibling.keys)
   if sibling.is_leaf() == false {
     child.children.append(sibling.children)
   }
-  ignore(parent.keys.remove(idx))
-  ignore(parent.children.remove(idx + 1))
 }
 
 ///|
@@ -292,13 +287,9 @@ pub fn[K : Compare, V] T::remove(self : Self[K, V], key : K) -> Unit {
     None => return ()
     Some(root) =>
       if remove_key(root, key) {
-        self.size = self.size - 1
+        self.size -= 1
         if root.keys.is_empty() {
-          if root.is_leaf() {
-            self.root = None
-          } else {
-            self.root = Some(root.children[0])
-          }
+          self.root = if root.is_leaf() { None } else { Some(root.children[0]) }
         }
       }
   }
