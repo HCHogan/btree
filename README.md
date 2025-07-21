@@ -27,8 +27,8 @@ For small maps an AVL tree may be faster; for anything larger B‑tree usually w
 
 ```moonbit
 test {
-  let _m1 : @btree_map.T[Int, String] = @btree_map.new()
-  let _m2 = @btree_map.from_array([(1, "one"), (2, "two"), (3, "three")])
+  let _m1 : @btree.T[Int, String] = @btree.new()
+  let _m2 = @btree.from_array([(1, "one"), (2, "two"), (3, "three")])
 }
 ```
 
@@ -36,20 +36,20 @@ test {
 
 ```moonbit
 test "add" {
-  let m = @btree_map.from_array([(1, "one"), (2, "two")])
+  let m = @btree.from_array([(1, "one"), (2, "two")])
   m.add(3, "three")
   assert_eq(m.size(), 3)
 }
 
 test "subscript‑set" {
-  let m = @btree_map.new()
+  let m = @btree.new()
   m[1] = "one"
   m[2] = "two"
   assert_eq(m.size(), 2)
 }
 
 test "remove" {
-  let m = @btree_map.from_array([(1,"one"),(2,"two"),(3,"three")])
+  let m = @btree.from_array([(1,"one"),(2,"two"),(3,"three")])
   m.remove(2)
   assert_eq(m.contains(2), false)
 }
@@ -59,7 +59,7 @@ test "remove" {
 
 ```moonbit
 test {
-  let m = @btree_map.from_array([(1,"one"),(2,"two"),(3,"three")])
+  let m = @btree.from_array([(1,"one"),(2,"two"),(3,"three")])
   assert_eq(m.get(2), Some("two"))
   assert_eq(m.contains(4), false)
 }
@@ -69,7 +69,7 @@ test {
 
 ```moonbit
 test "each" {
-  let m = @btree_map.from_array([(3,"three"),(1,"one"),(2,"two")])
+  let m = @btree.from_array([(3,"three"),(1,"one"),(2,"two")])
   let ks = []; let vs = []
   m.each((k,v)=>{ ks.push(k); vs.push(v) })
   assert_eq(ks, [1,2,3])
@@ -77,7 +77,7 @@ test "each" {
 }
 
 test "index‑each" {
-  let m = @btree_map.from_array([(3,"three"),(1,"one"),(2,"two")])
+  let m = @btree.from_array([(3,"three"),(1,"one"),(2,"two")])
   let acc = []
   m.eachi((i,k,v)=>{ acc.push((i,k,v)) })
   assert_eq(acc, [(0,1,"one"),(1,2,"two"),(2,3,"three")])
@@ -88,7 +88,7 @@ test "index‑each" {
 
 ```moonbit
 test {
-  let m = @btree_map.from_array([(1,"one"),(2,"two"),(3,"three")])
+  let m = @btree.from_array([(1,"one"),(2,"two"),(3,"three")])
   assert_eq(m.size(), 3)
   assert_eq(m.is_empty(), false)
   m.clear()
@@ -100,7 +100,7 @@ test {
 
 ```moonbit
 test {
-  let m = @btree_map.from_array([(3,"three"),(1,"one"),(2,"two")])
+  let m = @btree.from_array([(3,"three"),(1,"one"),(2,"two")])
   assert_eq(m.keys(),   [1,2,3])
   assert_eq(m.values(), ["one","two","three"])
   assert_eq(m.to_array(), [(1,"one"),(2,"two"),(3,"three")])
@@ -111,7 +111,7 @@ test {
 
 ```moonbit
 test {
-  let m = @btree_map.from_array([(1,"one"),(2,"two"),(3,"three"),
+  let m = @btree.from_array([(1,"one"),(2,"two"),(3,"three"),
                                  (4,"four"),(5,"five")])
   let sub = []
   m.range(2,4).each((k,v)=>sub.push((k,v)))
@@ -124,7 +124,7 @@ test {
 ```moonbit
 test {
   let it = [(1,"one"),(2,"two"),(3,"three")].iter()
-  let m = @btree_map.from_iter(it)
+  let m = @btree.from_iter(it)
   assert_eq(m.iter().to_array(),
             [(1,"one"),(2,"two"),(3,"three")])
 }
@@ -134,8 +134,8 @@ test {
 
 ```moonbit
 test {
-  let a = @btree_map.from_array([(1,"one"),(2,"two")])
-  let b = @btree_map.from_array([(2,"two"),(1,"one")])
+  let a = @btree.from_array([(1,"one"),(2,"two")])
+  let b = @btree.from_array([(2,"two"),(1,"one")])
   assert_eq(a == b, true)
 }
 ```
