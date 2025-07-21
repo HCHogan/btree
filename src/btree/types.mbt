@@ -1,7 +1,7 @@
 ///|
 priv struct Node[K, V] {
-  mut keys : Array[(K, V)]
-  mut children : Array[Node[K, V]]
+  keys : Array[(K, V)]
+  children : Array[Node[K, V]]
 }
 
 ///|

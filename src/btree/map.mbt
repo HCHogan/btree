@@ -53,11 +53,7 @@ pub fn[K : Compare, V] T::get(self : Self[K, V], k : K) -> V? {
 
 ///|
 pub fn[K : Compare, V] T::contains(self : Self[K, V], k : K) -> Bool {
-  if self.get(k).is_empty() {
-    return false
-  } else {
-    return true
-  }
+  !self.get(k).is_empty()
 }
 
 ///|
@@ -69,17 +65,15 @@ pub fn[K, V] T::clear(self : Self[K, V]) -> Unit {
 ///|
 fn[K, V] split_child(parent : Node[K, V], idx : Int) -> Unit {
   let child = parent.children[idx]
-  let median_idx = B - 1
-  let (left_keys, right_with_median) = child.keys.split_at(median_idx)
-  let median = right_with_median[0]
-  let (_, right_keys) = right_with_median.split_at(1)
+  let median = child.keys[B - 1]
   let sibling = Node::new()
-  sibling.keys = right_keys
-  child.keys = left_keys
-  if child.is_leaf() == false {
-    let (left_children, right_children) = child.children.split_at(B)
-    sibling.children.append(right_children)
-    child.children = left_children
+  let (_left, right) = child.keys.split_at(B)
+  sibling.keys.append(right)
+  child.keys.truncate(B - 1)
+  if !child.is_leaf() {
+    let (_l, right_child) = child.children.split_at(B)
+    sibling.children.append(right_child)
+    child.children.truncate(B)
   }
   parent.keys.insert(idx, median)
   parent.children.insert(idx + 1, sibling)
@@ -188,7 +182,7 @@ pub fn[K : Compare + Show, V] T::to_string_pretty(self : Self[K, V]) -> String {
 }
 
 ///|
-fn[K : Compare, V] borrow_from_prev(parent : Node[K, V], idx : Int) -> Unit {
+fn[K , V] borrow_from_prev(parent : Node[K, V], idx : Int) -> Unit {
   let child = parent.children[idx]
   let sibling = parent.children[idx - 1]
   child.keys.insert(0, parent.keys[idx - 1])
@@ -200,7 +194,7 @@ fn[K : Compare, V] borrow_from_prev(parent : Node[K, V], idx : Int) -> Unit {
 }
 
 ///|
-fn[K : Compare, V] borrow_from_next(parent : Node[K, V], idx : Int) -> Unit {
+fn[K , V] borrow_from_next(parent : Node[K, V], idx : Int) -> Unit {
   let child = parent.children[idx]
   let sibling = parent.children[idx + 1]
   child.keys.push(parent.keys[idx])
@@ -212,7 +206,7 @@ fn[K : Compare, V] borrow_from_next(parent : Node[K, V], idx : Int) -> Unit {
 }
 
 ///|
-fn[K : Compare, V] merge_children(parent : Node[K, V], idx : Int) -> Unit {
+fn[K , V] merge_children(parent : Node[K, V], idx : Int) -> Unit {
   let child = parent.children[idx]
   let sibling = parent.children[idx + 1]
   child.keys.push(parent.keys[idx])
@@ -225,7 +219,7 @@ fn[K : Compare, V] merge_children(parent : Node[K, V], idx : Int) -> Unit {
 }
 
 ///|
-fn[K : Compare, V] fill_child(parent : Node[K, V], idx : Int) -> Unit {
+fn[K , V] fill_child(parent : Node[K, V], idx : Int) -> Unit {
   if idx > 0 && parent.children[idx - 1].keys.length() >= B {
     borrow_from_prev(parent, idx)
   } else if idx < parent.children.length() - 1 &&
@@ -242,7 +236,7 @@ fn[K : Compare, V] fill_child(parent : Node[K, V], idx : Int) -> Unit {
 }
 
 ///|
-fn[K : Compare, V] predecessor(node : Node[K, V]) -> (K, V) {
+fn[K , V] predecessor(node : Node[K, V]) -> (K, V) {
   let mut cur = node
   while cur.is_leaf() == false {
     cur = cur.children[cur.children.length() - 1]
@@ -251,7 +245,7 @@ fn[K : Compare, V] predecessor(node : Node[K, V]) -> (K, V) {
 }
 
 ///|
-fn[K : Compare, V] successor(node : Node[K, V]) -> (K, V) {
+fn[K , V] successor(node : Node[K, V]) -> (K, V) {
   let mut cur = node
   while cur.is_leaf() == false {
     cur = cur.children[0]
