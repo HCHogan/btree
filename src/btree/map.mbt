@@ -263,6 +263,29 @@ fn[K : Compare + Show, V] to_string_pretty_recursive(
 }
 
 ///|
+/// Pretty‑prints the map as a tree structure.
+///
+/// Prints the keys like this:
+///
+/// ```text
+///   BTree(size=26)
+///   [50]
+///   ├── [30]
+///   │   ├── [20]
+///   │   │   ├── [5, 10, 15]
+///   │   │   └── [25, 28]
+///   │   └── [40]
+///   │       ├── [35, 38]
+///   │       └── [45, 48]
+///   └── [70]
+///       ├── [60]
+///       │   ├── [55, 58]
+///       │   └── [65, 68]
+///       └── [80, 90]
+///           ├── [75, 78]
+///           ├── [85]
+///           └── [95, 100]
+/// ```
 pub fn[K : Compare + Show, V] T::to_string_pretty(self : Self[K, V]) -> String {
   match self.root {
     None => "BTree(size=0) <empty>".to_string()
