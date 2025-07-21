@@ -1,3 +1,4 @@
 target/
 .mooncakes/
+.direnv/*
 .DS_Store
