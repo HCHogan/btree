@@ -5,22 +5,75 @@ const B : Int = 16
 pub fnalias T::new
 
 ///|
+/// Creates a new, empty **BTreeMap**.
+///
+/// Returns a map with `size() == 0` and `root == None`.
+///
+/// Example:
+///
+/// ```moonbit
+///   let m : @btree.T[Int,String] = @btree.new()
+///   inspect(m.is_empty(), content="true")
+/// ```
 pub fn[K, V] T::new() -> T[K, V] {
   { root: None, size: 0 }
 }
 
 ///|
+/// Returns the number of key‑value pairs contained in the map.
+///
+/// Complexity: **O(1)**.
+///
+/// Parameters:
+/// * `self` – The map whose size is requested.
+///
+/// Example:
+///
+/// ```moonbit
+///   let m = @btree.from_array([(1,"a"),(2,"b")])
+///   inspect(m.size(), content="2")
+/// ```
 pub fn[K, V] T::size(self : Self[K, V]) -> Int {
   self.size
 }
 
 ///|
+/// Builds a `BTreeMap` from an **array** of key‑value tuples.
+///
+/// Duplicate keys are *overwritten* by later entries in the array.
+///
+/// Complexity: `O(n log₍B₎ n)` – inserts each element individually.
+///
+/// Parameters:
+/// * `arr` – Array containing `(K,V)` pairs.  
+///
+/// Example:
+///
+/// ```moonbit
+///   let m = @btree.from_array([(3,"c"),(1,"a"),(2,"b")])
+///   inspect(m.keys(), content="[1, 2, 3]")
+/// ```
 pub fn[K : Compare, V] from_array(arr : Array[(K, V)]) -> T[K, V] {
   let tree = T::new()
   for i in arr {
     tree.add(i.0, i.1)
   }
   tree
+}
+
+///|
+/// Returns `true` when the map contains **no** key‑value entries.
+///
+/// Complexity: **O(1)**.
+///
+/// Example:
+///
+/// ```moonbit
+///   let m : @btree.T[Int, String] = @btree.new()
+///   inspect(m.is_empty(), content="true")
+/// ```
+pub fn[K, V] is_empty(self : T[K, V]) -> Bool {
+  self.size == 0
 }
 
 ///|
@@ -42,6 +95,20 @@ fn[K : Compare, V] search(node : Node[K, V], k : K) -> V? {
 }
 
 ///|
+/// Retrieves a **value** associated with `key`, or `None` if absent.
+///
+/// Complexity: `O(log₍B₎ n)` – binary‑search inside a node + child hop.
+///
+/// Parameters:
+/// * `key` – The key to look for.
+///
+/// Example:
+///
+/// ```moonbit
+///   let m = @btree.from_array([(1,"one"),(2,"two")])
+///   inspect(m.get(2), content="Some(\"two\")")
+///   inspect(m.get(3), content="None")
+/// ```
 pub fn[K : Compare, V] T::get(self : Self[K, V], k : K) -> V? {
   match self.root {
     None => None
@@ -50,11 +117,34 @@ pub fn[K : Compare, V] T::get(self : Self[K, V], k : K) -> V? {
 }
 
 ///|
+/// Checks whether `key` exists in the map.
+///
+/// Returns `true` exactly when `get(key)` returns `Some(_)`.
+///
+/// Complexity: `O(log₍B₎ n)`.
+///
+/// Example:
+///
+/// ```moonbit
+///   let m = @btree.from_array([(1,"a")])
+///   inspect(m.contains(1), content="true")
+///   inspect(m.contains(2), content="false")
+/// ```
 pub fn[K : Compare, V] T::contains(self : Self[K, V], k : K) -> Bool {
   self.get(k) is Some(_)
 }
 
 ///|
+/// **Clears** the map, removing all entries in `O(1)` time
+/// by dropping the root reference.
+///
+/// Example:
+///
+/// ```moonbit
+///   let m = @btree.from_array([(1,"a")])
+///   m.clear()
+///   inspect(m.is_empty(), content="true")
+/// ```
 pub fn[K, V] T::clear(self : Self[K, V]) -> Unit {
   self.root = None
   self.size = 0
@@ -107,6 +197,21 @@ fn[K : Compare, V] insert_non_full(
 }
 
 ///|
+/// Inserts / updates the pair `(key, value)`.
+///
+/// * If `key` is new, the pair is inserted and `size()` increases by 1.  
+/// * If `key` already exists, its value is **replaced**.
+///
+/// Complexity: `O(log₍B₎ n)` average – may split one node on the descent.
+///
+/// Example:
+///
+/// ```moonbit
+///   let m = @btree.new()
+///   m.add(1, "one")  // insert
+///   m.add(1, "uno")  // update
+///   inspect(m.get(1), content="Some(\"uno\")")
+/// ```
 pub fn[K : Compare, V] T::add(self : Self[K, V], key : K, value : V) -> Unit {
   match self.root {
     Some(old_root) =>
@@ -282,6 +387,19 @@ fn[K : Compare, V] remove_key(node : Node[K, V], key : K) -> Bool {
 }
 
 ///|
+/// Removes `key` and its value.  
+///
+/// Does nothing if `key` is absent.
+///
+/// Complexity: `O(log₍B₎ n)` – may cause one merge or borrow on the descent.
+///
+/// Example:
+///
+/// ```moonbit
+///   let m = @btree.from_array([(1,"a"),(2,"b")])
+///   m.remove(1)
+///   inspect(m.contains(1), content="false")
+/// ```
 pub fn[K : Compare, V] T::remove(self : Self[K, V], key : K) -> Unit {
   match self.root {
     None => return ()
@@ -296,21 +414,46 @@ pub fn[K : Compare, V] T::remove(self : Self[K, V], key : K) -> Unit {
 }
 
 ///|
+/// Array‑style **subscript assignment** sugar `map[key] = value`.
+///
+/// Equivalent to calling `add(key, value)`.
+///
+/// Example:
+///
+/// ```moonbit
+///   let m = @btree.new()
+///   m[42] = "Meaning of life"
+///   inspect(m.get(42), content="Some(\"Meaning of life\")")
+/// ```
 pub fn[K : Compare, V] op_set(self : T[K, V], key : K, value : V) -> Unit {
   self.add(key, value)
 }
 
 ///|
+/// Equality comparison: two maps are equal iff their ordered
+/// `to_array()` representations are equal.
 pub impl[K : Eq, V : Eq] Eq for T[K, V] with op_equal(self, other) {
   self.to_array() == other.to_array()
 }
 
 ///|
-pub fn[K, V] is_empty(self : T[K, V]) -> Bool {
-  self.size == 0
-}
-
-///|
+/// Applies function `f` to **each** `(key, value)` in ascending key order.
+///
+/// The traversal stops early if `f` raises an error.
+///
+/// Example:
+///
+/// ```moonbit
+///   let m = @btree.from_array([(3,"c"),(1,"a"),(2,"b")])
+///   let logger = StringBuilder::new()
+///   m.each((k, v) => logger.write_string("\{k} -> \{v}\n"))
+///   inspect(logger, content=(
+///     #|1 -> a
+///     #|2 -> b
+///     #|3 -> c
+///     #|
+///   ))
+/// ```
 pub fn[K, V] each(self : T[K, V], f : (K, V) -> Unit raise?) -> Unit raise? {
   fn dfs(n : Node[K, V]?, f : (K, V) -> Unit raise?) -> Unit raise? {
     match n {
@@ -334,6 +477,16 @@ pub fn[K, V] each(self : T[K, V], f : (K, V) -> Unit raise?) -> Unit raise? {
 }
 
 ///|
+/// Same as `each` but also passes a **zero‑based index** `i`.
+///
+/// Example:
+///
+/// ```moonbit
+///   let idxs = []
+///   @btree.from_array([(2,"b"),(1,"a")])
+///     .eachi((i, k, _v) => idxs.push((i,k)))
+///   inspect(idxs, content="[(0, 1), (1, 2)]")
+/// ```
 pub fn[K, V] eachi(
   self : T[K, V],
   f : (Int, K, V) -> Unit raise?,
@@ -346,6 +499,16 @@ pub fn[K, V] eachi(
 }
 
 ///|
+/// Collects all **keys** into a new array, in sorted order.
+///
+/// Complexity: `O(n)`.
+///
+/// Example:
+///
+/// ```moonbit
+///   let ks = @btree.from_array([(3,"c"),(1,"a")]).keys()
+///   inspect(ks, content="[1, 3]")
+/// ```
 pub fn[K, V] keys(self : T[K, V]) -> Array[K] {
   let ks = Array::new(capacity=self.size)
   self.each((k, _v) => ks.push(k))
@@ -353,6 +516,9 @@ pub fn[K, V] keys(self : T[K, V]) -> Array[K] {
 }
 
 ///|
+/// Collects all **values** into a new array, preserving key order.
+///
+/// Complexity: `O(n)`.
 pub fn[K, V] values(self : T[K, V]) -> Array[V] {
   let vs = Array::new(capacity=self.size)
   self.each((_k, v) => vs.push(v))
@@ -360,6 +526,10 @@ pub fn[K, V] values(self : T[K, V]) -> Array[V] {
 }
 
 ///|
+/// Converts the map into an **array of pairs** `[(K, V)]` in
+/// ascending key order.
+///
+/// Complexity: `O(n)`.
 pub fn[K, V] to_array(self : T[K, V]) -> Array[(K, V)] {
   let arr = Array::new(capacity=self.size)
   self.each((k, v) => arr.push((k, v)))
@@ -367,6 +537,18 @@ pub fn[K, V] to_array(self : T[K, V]) -> Array[(K, V)] {
 }
 
 ///|
+/// Produces a **iterator** over `(key, value)` pairs.
+///
+/// The iterator yields pairs in sorted order and stops once all elements
+/// have been visited.
+///
+/// Example:
+///
+/// ```moonbit
+///   let m = @btree.from_array([(2,"b"), (1,"a")])
+///   let arr = m.iter().to_array()
+///   inspect(arr, content="[(1, \"a\"), (2, \"b\")]")
+/// ```
 pub fn[K, V] iter(self : T[K, V]) -> Iter[(K, V)] {
   Iter::new(yield_ => {
     fn go(n : Node[K, V]?, y : ((K, V)) -> IterResult) -> IterResult {
@@ -396,6 +578,10 @@ pub fn[K, V] iter(self : T[K, V]) -> Iter[(K, V)] {
 }
 
 ///|
+/// Like `iter`, but the yield signature is `yield_(k, v)`
+/// instead of a tuple.
+///
+/// Useful when working with APIs that expect two separate arguments.
 pub fn[K, V] iter2(self : T[K, V]) -> Iter2[K, V] {
   Iter2::new(yield_ => {
     fn go(n : Node[K, V]?, y : (K, V) -> IterResult) -> IterResult {
@@ -425,6 +611,17 @@ pub fn[K, V] iter2(self : T[K, V]) -> Iter2[K, V] {
 }
 
 ///|
+/// Builds a map from any iterator of `(K,V)` pairs.
+///
+/// Parameters:
+/// * `iter` – A value implementing `Iter[(K, V)]`.
+///
+/// Example:
+///
+/// ```moonbit
+///   let m = @btree.from_iter([(1,"x"),(2,"y")].iter())
+///   inspect(m.size(), content="2")
+/// ```
 pub fn[K : Compare, V] from_iter(iter : Iter[(K, V)]) -> T[K, V] {
   let m = new()
   iter.each(p => m.add(p.0, p.1))
@@ -432,6 +629,23 @@ pub fn[K : Compare, V] from_iter(iter : Iter[(K, V)]) -> T[K, V] {
 }
 
 ///|
+/// Returns an iterator over all pairs with keys in **inclusive range**
+/// `[low, high]`.
+///
+/// Complexity: `O(log₍B��� n + k)` where `k` is the number of pairs yielded.
+///
+/// Edge‑cases:
+/// * If `low > high`, the iterator is empty.
+/// * Keys outside the map bounds are ignored.
+///
+/// Example:
+///
+/// ```moonbit
+///   let m = @btree.from_array([(1,"a"),(2,"b"),(3,"c")])
+///   let sub = []
+///   m.range(2,3).each((k,v)=>sub.push((k,v)))
+///   inspect(sub, content="[(2, \"b\"), (3, \"c\")]")
+/// ```
 pub fn[K : Compare, V] range(self : T[K, V], low : K, high : K) -> Iter2[K, V] {
   Iter2::new(yield_ => {
     fn go(
@@ -482,11 +696,21 @@ pub impl[K : @quickcheck.Arbitrary + Compare, V : @quickcheck.Arbitrary] @quickc
 }
 
 ///|
+/// Pretty `Show` implementation – prints as
+/// `of([(k1, v1), (k2, v2), …])`.
+///
+/// Example:
+///
+/// ```moonbit
+///   inspect(@btree.from_array([(1,1)]),
+///           content="of([(1, 1)])")
+/// ```
 pub impl[K : Show, V : Show] Show for T[K, V] with output(self, logger) {
   logger.write_string("of(\{self.to_array().to_string()})")
 }
 
 ///|
+/// Returns the **default** empty map.
 pub impl[K, V] Default for T[K, V] with default() {
   new()
 }
